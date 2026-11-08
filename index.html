@@ -1,13 +1,30 @@
-# Bơ AI Agent
-
-Hệ thống trợ lý AI thông minh, điều phối nhiều AI và ứng dụng.
-
-## Mục tiêu
-- Phát triển ứng dụng trên iPhone.
-- Kết nối nhiều mô hình AI qua API.
-- Tự động lập kế hoạch và thực hiện nhiệm vụ.
-- Quản lý công việc cá nhân và công vụ độc lập.
-- Lưu trữ dữ liệu và quản lý quyền truy cập an toàn.
-
-## Trạng thái
-Dự án đang trong giai đoạn phát triển.
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101b33"><title>Bơ AI Agent</title>
+<style>:root{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e9eefb;background:#0c1425}*{box-sizing:border-box}body{margin:0}header{background:#111e36;padding:18px 16px;position:sticky;top:0;z-index:2;border-bottom:1px solid #293a56}h1{font-size:21px;margin:0}small,.muted{color:#9aaec9}main{max-width:780px;margin:auto;padding:16px 16px 100px}.tabs,.row{display:flex;gap:8px;flex-wrap:wrap}button,input,textarea,select{font:inherit;border-radius:12px}button{background:#253957;border:1px solid #405779;color:#fff;padding:11px 14px;cursor:pointer}button.active,.primary{background:#2677e8;border-color:#2677e8}.panel{background:#15233c;border:1px solid #30435f;border-radius:16px;padding:16px;margin-top:15px}h2{font-size:17px;margin:0 0 12px}input,textarea,select{width:100%;padding:12px;background:#0c172b;border:1px solid #40516c;color:#fff}textarea{min-height:95px;resize:vertical}label{display:block;margin:12px 0 6px;color:#c3d0e5}.chat{min-height:170px;max-height:42vh;overflow:auto;display:flex;flex-direction:column;gap:10px}.msg{padding:11px 13px;border-radius:13px;white-space:pre-wrap;overflow-wrap:anywhere;max-width:90%}.user{align-self:flex-end;background:#1c5ab0}.agent{align-self:flex-start;background:#263751}.task{border-top:1px solid #334762;padding:12px 0;display:flex;align-items:center;justify-content:space-between;gap:10px}.task span{overflow-wrap:anywhere}.task.done span{text-decoration:line-through;color:#91a1ba}.hidden{display:none}.status{font-size:12px;color:#9ac7ff;margin-top:7px}footer{text-align:center;color:#8193ae;font-size:12px;padding:12px}</style></head>
+<body><header><h1>Bơ AI Agent <small>• Bản thử nghiệm</small></h1><div class="status" id="status">Chế độ giao diện nội bộ • Chưa kết nối AI</div></header><main>
+<div class="tabs"><button id="personal" class="active" onclick="setSpace('personal')">Cá nhân</button><button id="official" onclick="setSpace('official')">Công vụ</button></div>
+<section class="panel"><h2>Trò chuyện với Bơ</h2><div id="chat" class="chat" aria-live="polite"></div><label for="prompt">Nhập yêu cầu</label><textarea id="prompt" placeholder="Ví dụ: Lập kế hoạch công việc hôm nay..."></textarea><div class="row" style="margin-top:10px"><button class="primary" onclick="sendMessage()">Gửi yêu cầu</button><button onclick="clearChat()">Xóa lịch sử</button></div></section>
+<section class="panel"><h2>Quản lý nhiệm vụ</h2><input id="taskInput" placeholder="Nhập nhiệm vụ mới"><div class="row" style="margin-top:10px"><button onclick="addTask()">Thêm nhiệm vụ</button></div><div id="tasks"></div></section>
+<section class="panel"><h2>Kết nối máy chủ AI</h2><p class="muted">Chỉ nhập địa chỉ máy chủ HTTPS do bạn quản lý. Không nhập khóa API bí mật tại đây.</p><label for="endpoint">Địa chỉ API</label><input id="endpoint" type="url" placeholder="https://api.tenmien.vn/agent/chat"><div class="row" style="margin-top:10px"><button onclick="saveEndpoint()">Lưu địa chỉ</button><button onclick="disconnect()">Ngắt kết nối</button></div><p class="muted">Máy chủ cần nhận POST JSON {message, space, history} và trả về JSON {reply}. Phải hỗ trợ CORS. Hai không gian chỉ tách dữ liệu trên trình duyệt; chưa đáp ứng yêu cầu bảo mật dữ liệu công vụ.</p></section>
+<footer>Bơ AI Agent • Giao diện chạy trên Safari và GitHub Pages</footer></main>
+<script>
+'use strict';
+let space='personal';
+const $=id=>document.getElementById(id);
+const key=type=>'boai_v1_'+space+'_'+type;
+const read=(type,fallback)=>{try{return JSON.parse(localStorage.getItem(key(type)))??fallback}catch{return fallback}};
+const save=(type,value)=>localStorage.setItem(key(type),JSON.stringify(value));
+function setSpace(next){space=next;['personal','official'].forEach(id=>$(id).classList.toggle('active',id===space));renderChat();renderTasks();}
+function renderChat(){const box=$('chat');box.replaceChildren();const history=read('history',[]);if(!history.length){const d=document.createElement('div');d.className='msg agent';d.textContent='Xin chào. Tôi là giao diện Bơ AI Agent. Hãy kết nối máy chủ AI để nhận câu trả lời thực tế.';box.append(d)}for(const item of history){const d=document.createElement('div');d.className='msg '+(item.role==='user'?'user':'agent');d.textContent=item.content;box.append(d)}box.scrollTop=box.scrollHeight}
+function renderTasks(){const box=$('tasks');box.replaceChildren();for(const [i,t] of read('tasks',[]).entries()){const row=document.createElement('div');row.className='task'+(t.done?' done':'');const span=document.createElement('span');span.textContent=t.title;const buttons=document.createElement('div');buttons.className='row';const toggle=document.createElement('button');toggle.textContent=t.done?'Mở lại':'Hoàn thành';toggle.onclick=()=>changeTask(i,'toggle');const del=document.createElement('button');del.textContent='Xóa';del.onclick=()=>changeTask(i,'delete');buttons.append(toggle,del);row.append(span,buttons);box.append(row)}}
+function addTask(){const title=$('taskInput').value.trim();if(!title)return;const tasks=read('tasks',[]);tasks.push({title,done:false});save('tasks',tasks);$('taskInput').value='';renderTasks()}
+function changeTask(i,action){const tasks=read('tasks',[]);if(action==='delete')tasks.splice(i,1);else tasks[i].done=!tasks[i].done;save('tasks',tasks);renderTasks()}
+function clearChat(){if(!confirm('Xóa lịch sử trò chuyện của không gian này?'))return;save('history',[]);renderChat()}
+function getEndpoint(){return localStorage.getItem('boai_v1_endpoint')||''}
+function saveEndpoint(){const value=$('endpoint').value.trim();if(!value.startsWith('https://')){alert('Vui lòng nhập địa chỉ HTTPS hợp lệ.');return}localStorage.setItem('boai_v1_endpoint',value);updateStatus();alert('Đã lưu địa chỉ máy chủ. Chưa xác minh kết nối.')}
+function disconnect(){localStorage.removeItem('boai_v1_endpoint');$('endpoint').value='';updateStatus()}
+function updateStatus(){$('status').textContent=getEndpoint()?'Đã cấu hình địa chỉ API • Chưa xác minh kết nối':'Chế độ giao diện nội bộ • Chưa kết nối AI'}
+let sending=false;
+async function sendMessage(){if(sending)return;const message=$('prompt').value.trim();if(!message)return;const currentSpace=space;const history=read('history',[]);history.push({role:'user',content:message});save('history',history);$('prompt').value='';renderChat();const endpoint=getEndpoint();if(!endpoint){history.push({role:'assistant',content:'Chưa kết nối máy chủ AI. Yêu cầu đã được lưu trong lịch sử trên thiết bị, nhưng chưa được AI xử lý.'});save('history',history);renderChat();return}sending=true;$('status').textContent='Đang gửi yêu cầu đến máy chủ...';try{const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),30000);let response;try{response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,space:currentSpace,history:history.slice(-20)}),signal:controller.signal})}finally{clearTimeout(timeout)}if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();if(typeof data.reply!=='string')throw Error('Phản hồi không có trường reply');const updated=read('history',[]);updated.push({role:'assistant',content:data.reply});save('history',updated)}catch(e){const updated=read('history',[]);updated.push({role:'assistant',content:'Không thể kết nối AI: '+e.message});save('history',updated)}finally{sending=false;updateStatus();if(space===currentSpace)renderChat()}}
+$('endpoint').value=getEndpoint();updateStatus();renderChat();renderTasks();
+</script></body></html>
